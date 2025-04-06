@@ -1,141 +1,85 @@
 #include <iostream>
-#include <string>
+#include <queue>
 using namespace std;
 
-// Node structure for a task
-struct Task {
-    int id;
-    string description;
+// Patient structure
+struct Patient {
+    string name;
     int priority;
-    Task* next;
-};
+    int arrivalOrder;
 
-class TaskManager {
-private:
-    Task* head; // Head of the linked list
+    // Constructor
+    Patient(string n, int p, int a) : name(n), priority(p), arrivalOrder(a) {}
 
-public:
-    TaskManager() { head = nullptr; }
-
-    // Function to add a new task based on priority
-    void addTask(int id, string desc, int priority) {
-        Task* newTask = new Task{id, desc, priority, nullptr};
-        if (!head || head->priority < priority) {
-            newTask->next = head;
-            head = newTask;
-            return;
-        }
-        Task* temp = head;
-        while (temp->next && temp->next->priority >= priority) {
-            temp = temp->next;
-        }
-        newTask->next = temp->next;
-        temp->next = newTask;
-    }
-
-    // Function to remove the highest priority task (from the start)
-    void removeHighestPriorityTask() {
-        if (!head) {
-            cout << "No tasks available to remove.\n";
-            return;
-        }
-        Task* temp = head;
-        head = head->next;
-        delete temp;
-        cout << "Highest priority task removed.\n";
-    }
-
-    // Function to remove a task by its ID
-    void removeTaskById(int id) {
-        if (!head) {
-            cout << "No tasks available to remove.\n";
-            return;
-        }
-        if (head->id == id) {
-            Task* temp = head;
-            head = head->next;
-            delete temp;
-            cout << "Task with ID " << id << " removed.\n";
-            return;
-        }
-        Task* temp = head;
-        while (temp->next && temp->next->id != id) {
-            temp = temp->next;
-        }
-        if (!temp->next) {
-            cout << "Task with ID " << id << " not found.\n";
-            return;
-        }
-        Task* delTask = temp->next;
-        temp->next = temp->next->next;
-        delete delTask;
-        cout << "Task with ID " << id << " removed.\n";
-    }
-
-    // Function to display all tasks
-    void viewTasks() {
-        if (!head) {
-            cout << "No tasks available.\n";
-            return;
-        }
-        Task* temp = head;
-        while (temp) {
-            cout << "ID: " << temp->id << ", Description: " << temp->description << ", Priority: " << temp->priority << "\n";
-            temp = temp->next;
-        }
-    }
-
-    ~TaskManager() {
-        while (head) {
-            Task* temp = head;
-            head = head->next;
-            delete temp;
-        }
+    // Operator overloading for priority queue (Min-Heap logic)
+    bool operator>(const Patient& p) const {
+        if (priority == p.priority)
+            return arrivalOrder > p.arrivalOrder;  // Earlier arrival gets priority
+        return priority > p.priority;  // Lower number has higher priority
     }
 };
+
+// Function to determine priority based on emergency condition
+int getPriority(string condition) {
+    if (condition == "Heart Attack" || condition == "Stroke") return 1;
+    if (condition == "Broken Leg" || condition == "Severe Burn" || condition == "Fractured Arm") return 2;
+    if (condition == "Fever" || condition == "Food Poisoning" || condition == "Migraine") return 3;
+    if (condition == "Mild Cold" || condition == "Small Cut") return 4;
+    return 4; // Default lowest priority
+}
 
 int main() {
-    TaskManager manager;
-    int choice, id, priority;
-    string desc;
+    priority_queue<Patient, vector<Patient>, greater<Patient>> pq;  // Min-Heap
+    int arrival = 1;
+    int choice;
 
     while (true) {
-        cout << "\nTask Management System\n";
-        cout << "1. Add Task\n";
-        cout << "2. View Tasks\n";
-        cout << "3. Remove Highest Priority Task\n";
-        cout << "4. Remove Task by ID\n";
-        cout << "5. Exit\n";
+        cout << "\nMenu:\n";
+        cout << "1. Add Patient\n";
+        cout << "2. Show Treatment Order\n";
+        cout << "3. Exit\n";
         cout << "Enter your choice: ";
         cin >> choice;
+        cin.ignore();  // Clear newline after integer input
 
-        switch (choice) {
-            case 1:
-                cout << "Enter Task ID: ";
-                cin >> id;
-                cin.ignore();
-                cout << "Enter Task Description: ";
-                getline(cin, desc);
-                cout << "Enter Priority (higher number = higher priority): ";
-                cin >> priority;
-                manager.addTask(id, desc, priority);
-                break;
-            case 2:
-                manager.viewTasks();
-                break;
-            case 3:
-                manager.removeHighestPriorityTask();
-                break;
-            case 4:
-                cout << "Enter Task ID to remove: ";
-                cin >> id;
-                manager.removeTaskById(id);
-                break;
-            case 5:
-                cout << "Exiting program...\n";
-                return 0;
-            default:
-                cout << "Invalid choice, try again.\n";
+        if (choice == 1) {
+            string name, condition;
+            cout << "Enter Patient Name: ";
+            getline(cin, name);  // Use getline for full name input
+            cout << "Enter Emergency Condition: ";
+            getline(cin, condition);
+            
+            int priority = getPriority(condition);
+            pq.push(Patient(name, priority, arrival));
+            arrival++;
+            cout << "Patient added successfully!\n";
+        } 
+        else if (choice == 2) {
+            if (pq.empty()) {
+                cout << "\nNo patients in the queue.\n";
+            } else {
+                cout << "\nCurrent Treatment Order:\n";
+                priority_queue<Patient, vector<Patient>, greater<Patient>> tempPQ = pq;
+                while (!tempPQ.empty()) {
+                    Patient p = tempPQ.top();
+                    tempPQ.pop();
+                    cout << p.name << " (Priority: " << p.priority << ")\n";
+                }
+            }
+        } 
+        else if (choice == 3) {
+            cout << "\nFinal Treatment Order:\n";
+            while (!pq.empty()) {
+                Patient p = pq.top();
+                pq.pop();
+                cout << p.name << " (Priority: " << p.priority << ")\n";
+            }
+            cout << "Exiting program...\n";
+            break;
+        } 
+        else {
+            cout << "Invalid choice. Please try again.\n";
         }
     }
+    return 0;
 }
